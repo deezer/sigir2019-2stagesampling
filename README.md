@@ -4,7 +4,8 @@ This repository contains implementation for the following paper:
 
 > V-A. Tran, R. Hennequin, J. Royo-Letelier and M. Moussallam. Improving Collaborative Metric Learning with Efficient Negative Sampling. In: *Proceedings of SIGIR 2019*, July 2019.
 
-## Environment
+
+## Environment
 - python 3.6
 - tensorflow 1.12
 - numpy 1.15.4
