@@ -177,6 +177,22 @@ class Model(object):
         logger.info('Best {} validation score: {}, on epoch {}'.format(
                     metrics[0], best_valid_scores, best_ep))
 
+    def get_recommended_items(self, user_ids, train_user_items,
+                              max_train_interaction_count, k=50):
+        # load model
+        if self.checkpoint is None:
+            self._load_from_checkpoint()
+        recommended_items = self._topk_items(user_ids,
+                                             k=k + max_train_interaction_count)
+        results = []
+        for uid, pred_iids in recommended_items.items():
+            top = []
+            for iid in pred_iids:
+                if iid not in train_user_items[uid] and len(top) < k:
+                    top.append(iid)
+            results.append(top)
+        return results
+
     def _create_placeholders(self):
         self.is_training = tf.placeholder(dtype=tf.bool, shape=None,
                                           name='is_training')

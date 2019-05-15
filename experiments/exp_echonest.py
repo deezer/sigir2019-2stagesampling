@@ -6,6 +6,8 @@ import os
 import json
 import logging
 import argparse
+import toolz
+from collections import defaultdict
 import numpy as np
 import scipy.sparse as sp
 import tensorflow as tf
@@ -42,7 +44,8 @@ params = HParams(
     n_users_in_validation=3000,
     n_users_in_test=3000,
 
-    n_negatives=1
+    n_negatives=1,
+    mode='train'
 )
 
 sampler_params = {
@@ -140,6 +143,45 @@ def train_model(params, train_interactions, valid_interactions, eval_users):
     tf.reset_default_graph()
 
 
+def get_item_popularity(interactions, max_count=None):
+    interactions = sp.lil_matrix(interactions)
+    popularity_dict = defaultdict(int)
+    for uid, iids in enumerate(interactions.rows):
+        for iid in iids:
+            popularity_dict[iid] += 1
+            if max_count is not None and popularity_dict[iid] > max_count:
+                popularity_dict[iid] = max_count
+    return popularity_dict
+
+
+def get_median_rank_recommended_items(train_interactions,
+                                      eval_users,
+                                      item_popularities,
+                                      n_users_in_chunk):
+    train_interactions = sp.lil_matrix(train_interactions)
+    max_train_interaction_count = max(len(row) for row in train_interactions.rows)
+    train_user_items = {u: set(train_interactions.rows[u])
+                        for u in eval_users if train_interactions.rows[u]}
+
+    recommended_items = []
+    with tf.Session() as sess:
+        model = Triplet(sess=sess, params=params)
+        logger.info('Get recommended items for users in evaluation')
+        for user_chunk in toolz.partition_all(n_users_in_chunk, eval_users):
+            recommended_items = recommended_items + \
+                                model.get_recommended_items(
+                                    user_chunk, train_user_items,
+                                    max_train_interaction_count,
+                                    k=50)
+        logger.info('Get rank for recommended items')
+        item_ranks = []
+        for iids in recommended_items:
+            item_ranks.append([item_popularities[iid] for iid in iids])
+        median_ranks = np.median(item_ranks, axis=1)
+    tf.reset_default_graph()
+    return np.mean(median_ranks)
+
+
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
                         level=logging.DEBUG)
@@ -220,5 +262,14 @@ if __name__ == '__main__':
                                            size=params.n_users_in_validation,
                                            replace=False))
 
-    # train model
-    train_model(params, train_interactions, valid_interactions, eval_users)
+    if params.mode == 'train':
+        train_model(params, train_interactions, valid_interactions, eval_users)
+    else:
+        logging.info('Get item popularities')
+        item_popularities = get_item_popularity(train_interactions)
+
+        mmr = get_median_rank_recommended_items(train_interactions,
+                                                eval_users,
+                                                item_popularities,
+                                                params.n_users_in_chunk)
+        logger.info('Mean Median Rank: {}'.format(mmr))
