@@ -117,6 +117,8 @@ class Triplet(Model):
 
         if self.activate_l2_norm:
             logger.debug('----> Activate L2 norm')
+            self.anchors = self.anchors / tf.sqrt(tf.reduce_sum(
+                tf.square(self.anchors), axis=-1, keepdims=True))
             self.positives = self.positives / tf.sqrt(tf.reduce_sum(
                 tf.square(self.positives), axis=-1, keepdims=True))
             negatives = negatives / tf.sqrt(tf.reduce_sum(
@@ -194,11 +196,10 @@ class Triplet(Model):
     def _create_score_items(self):
         logger.debug('--> Define Triplet ranking scores')
         # get users need to score
-        users = tf.expand_dims(tf.nn.embedding_lookup(self.user_embeddings,
-                                                      self.eval_ids), 1)
+        users = tf.expand_dims(self.anchors, 1)
 
         # reshape items to (1, M, K)
-        items = tf.expand_dims(self.item_embeddings, 0)
+        items = tf.expand_dims(self.positives, 0)
 
         # scores = minus distance (N, M)
         self.scores = -tf.reduce_sum(tf.squared_difference(users, items),
@@ -206,4 +207,9 @@ class Triplet(Model):
 
     def _update_embeddings(self):
         self.dense_user_embeddings, self.dense_item_embeddings = \
-            self.sess.run([self.user_embeddings, self.item_embeddings])
+            self.sess.run(
+                [self.anchors, self.positives],
+                feed_dict={
+                    self.anchor_ids: list(range(self.n_users)),
+                    self.pos_ids: list(range(self.n_items))}
+            )

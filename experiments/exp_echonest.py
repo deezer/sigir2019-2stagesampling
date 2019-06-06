@@ -34,6 +34,7 @@ params = HParams(
     clip_norm=1.0,
     margin=1.0,
     initialized_std=1.0,
+    activate_l2_norm=False,
 
     # training iter & batch
     n_epochs=20,

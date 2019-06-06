@@ -49,6 +49,7 @@ CUDA_VISIBLE_DEVICES=0 python experiments/exp_echonest.py \
 
 CUDA_VISIBLE_DEVICES=0 python experiments/exp_echonest.py \
     -learning_rate=0.0001 \
+    -activate_l2_norm=True \
     -embedding_dim=128 \
     -n_epochs=50 \
     -initialized_std=0.1 \
@@ -62,6 +63,7 @@ CUDA_VISIBLE_DEVICES=0 python experiments/exp_echonest.py \
 
 CUDA_VISIBLE_DEVICES=0 python experiments/exp_echonest.py \
     -learning_rate=0.0001 \
+    -activate_l2_norm=True \
     -embedding_dim=128 \
     -n_epochs=50 \
     -initialized_std=0.1 \
