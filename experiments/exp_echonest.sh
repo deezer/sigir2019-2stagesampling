@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Best UNIFORM score: [0.067834   0.03042152], MMR: 358.4845
 # Best POPULAR score: [0.08187394 0.04360328], MMR: 30.7825
-# Best 2-STAGE score: [0.0901202  0.04492888], MMR: 146.327
+# Best 2-STAGE score: [0.09179041 0.04784787], MMR: 146.327
 
 CUDA_VISIBLE_DEVICES=0 python experiments/exp_echonest.py \
     -learning_rate=0.0001 \

@@ -239,9 +239,7 @@ class Model(object):
             Top k items for each user.
         """
         _, topk = self.sess.run(tf.nn.top_k(self.scores, k),
-                                feed_dict={
-                                    self.anchor_ids: user_ids,
-                                    self.pos_ids: list(range(self.n_items))})
+                                feed_dict={self.anchor_ids: user_ids})
         return dict(zip(user_ids, topk))
 
     @classmethod

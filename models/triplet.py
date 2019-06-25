@@ -76,6 +76,13 @@ class Triplet(Model):
             dtype=tf.float32
         )
 
+        if self.activate_l2_norm:
+            logger.debug('----> Active L2 normalization')
+            self.user_embeddings = tf.math.l2_normalize(self.user_embeddings,
+                                                        axis=1)
+            self.item_embeddings = tf.math.l2_normalize(self.item_embeddings,
+                                                        axis=1)
+
     def _pos_distances(self):
         logger.debug('--> Define Triplet positive distances')
         distances = tf.reduce_sum(
@@ -115,14 +122,6 @@ class Triplet(Model):
         # negative item embedding: shape=(N, K, W)
         negatives = tf.nn.embedding_lookup(self.item_embeddings, self.neg_ids)
 
-        if self.activate_l2_norm:
-            logger.debug('----> Activate L2 norm')
-            self.anchors = self.anchors / tf.sqrt(tf.reduce_sum(
-                tf.square(self.anchors), axis=-1, keepdims=True))
-            self.positives = self.positives / tf.sqrt(tf.reduce_sum(
-                tf.square(self.positives), axis=-1, keepdims=True))
-            negatives = negatives / tf.sqrt(tf.reduce_sum(
-                tf.square(negatives), axis=-1, keepdims=True))
         self.negatives = tf.transpose(negatives, (0, 2, 1),
                                       name='batch_negative_embeddings')
         # positive distances
@@ -172,9 +171,7 @@ class Triplet(Model):
 
     def _create_train_ops(self):
         logger.debug('--> Define Triplet train ops')
-        ops = self._optimizer_ops()
-        with tf.control_dependencies(ops):
-            self.train_ops = ops + self._clip_by_norm_ops()
+        self.train_ops = self._optimizer_ops()
 
     def _clip_by_norm_ops(self):
         return [tf.assign(self.user_embeddings, tf.clip_by_norm(
@@ -185,9 +182,8 @@ class Triplet(Model):
     def _optimizer_ops(self):
         logger.debug('--> Define Triplet Optimizer ops')
         try:
-            ops = [_SUPPORTED_OPTIMIZERS[self.optimizer](self.learning_rate).minimize(
-                self.loss,
-                var_list=[self.user_embeddings, self.item_embeddings])]
+            ops = [_SUPPORTED_OPTIMIZERS[self.optimizer](
+                self.learning_rate).minimize(self.loss)]
         except KeyError:
             raise KeyError('Current Triplet implementation does not support '
                            'optimizer: {}'.format(self.optimizer))
@@ -199,7 +195,7 @@ class Triplet(Model):
         users = tf.expand_dims(self.anchors, 1)
 
         # reshape items to (1, M, K)
-        items = tf.expand_dims(self.positives, 0)
+        items = tf.expand_dims(self.item_embeddings, 0)
 
         # scores = minus distance (N, M)
         self.scores = -tf.reduce_sum(tf.squared_difference(users, items),
@@ -207,9 +203,4 @@ class Triplet(Model):
 
     def _update_embeddings(self):
         self.dense_user_embeddings, self.dense_item_embeddings = \
-            self.sess.run(
-                [self.anchors, self.positives],
-                feed_dict={
-                    self.anchor_ids: list(range(self.n_users)),
-                    self.pos_ids: list(range(self.n_items))}
-            )
+            self.sess.run([self.user_embeddings, self.item_embeddings])

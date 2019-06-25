@@ -19,6 +19,6 @@ This repository contains implementation for the following paper:
 
 ## Run example script
 Run experiments/exp_echonest.sh for an example:
-- UNIFORM ndcg/map: [0.067834   0.03042152], MMR: 358.4845
-- POPULAR ndcg/map: [0.08187394 0.04360328], MMR: 30.7825
+- UNIFORM ndcg/map: [0.067834   0.03042152], MMR: 358.485
+- POPULAR ndcg/map: [0.08187394 0.04360328], MMR: 30.783
 - 2-STAGE ndcg/map: [0.09179041  0.04784787], MMR: 146.327
